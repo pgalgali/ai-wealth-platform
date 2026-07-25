@@ -1,41 +1,42 @@
 "use client";
-
+ 
 import { FormEvent, useMemo, useState } from "react";
 import { Activity, ArrowDownRight, ArrowUpRight, Bell, Bot, BriefcaseBusiness, ChevronRight, CircleHelp, Command, Compass, Database, Filter, LayoutDashboard, Menu, MoreHorizontal, PanelsTopLeft, Search, Send, Settings2, ShieldCheck, Sparkles, TrendingUp, Users, WalletCards, X } from "lucide-react";
 import { alerts, chartValues, kpis, marketPulse, screenerRows, whaleChanges } from "@/lib/mock-data";
-import type { Tone, Workspace } from "@/types";
-
+import { apiRequest } from "@/lib/api";
+import type { MarketPulse, Tone, Workspace } from "@/types";
+ 
 const workspaces: { name: Workspace; icon: typeof LayoutDashboard; badge?: string }[] = [
   { name: "Overview", icon: LayoutDashboard }, { name: "Copilot", icon: Bot, badge: "AI" },
   { name: "Whale Watch", icon: Users }, { name: "Screener", icon: Filter },
   { name: "Portfolio", icon: BriefcaseBusiness }, { name: "Alerts", icon: Bell, badge: "3" },
 ];
-
+ 
 const toneClass: Record<Tone, string> = { positive: "tone-positive", negative: "tone-negative", neutral: "tone-neutral", warning: "tone-warning" };
-
+ 
 function Change({ value, tone }: { value: string; tone: Tone }) {
   return <span className={`change ${toneClass[tone]}`}>{tone === "positive" ? <ArrowUpRight size={13} /> : tone === "negative" ? <ArrowDownRight size={13} /> : null}{value}</span>;
 }
-
+ 
 function PerformanceChart() {
   const linePoints = chartValues.map((value, index) => `${(index / (chartValues.length - 1)) * 100},${100 - value}`).join(" ");
   const areaPoints = `0,100 ${linePoints} 100,100`;
   return <div className="chart-shell"><div className="chart-y-axis"><span>₹50L</span><span>₹45L</span><span>₹40L</span><span>₹35L</span></div><svg className="performance-chart" viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Portfolio value increasing over the last year"><defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#b7ff57" stopOpacity="0.26" /><stop offset="1" stopColor="#b7ff57" stopOpacity="0" /></linearGradient></defs>{[20, 40, 60, 80].map((level) => <line key={level} x1="0" x2="100" y1={level} y2={level} className="chart-grid-line" />)}<polygon points={areaPoints} fill="url(#chartFill)" /><polyline points={linePoints} fill="none" stroke="#b7ff57" strokeWidth="1.5" vectorEffect="non-scaling-stroke" /><circle cx="100" cy={100 - chartValues.at(-1)!} r="2.3" fill="#b7ff57" stroke="#101314" strokeWidth="1" vectorEffect="non-scaling-stroke" /></svg><div className="chart-x-axis"><span>Jul 25</span><span>Oct 25</span><span>Jan 26</span><span>Apr 26</span><span>Jun 26</span></div></div>;
 }
-
+ 
 function AllocationDonut() {
   const allocation = [["Equity", "52%", "#b7ff57"], ["Mutual funds", "27%", "#7b8cff"], ["Gold / ETFs", "12%", "#f7bd5d"], ["Cash", "9%", "#50606b"]];
   return <div className="allocation-wrap"><div className="allocation-donut"><div className="donut-center"><strong>₹32.6L</strong><span>Invested</span></div></div><div className="allocation-legend">{allocation.map(([name, share, color]) => <div className="legend-row" key={name}><span className="legend-dot" style={{ background: color }} /><span>{name}</span><strong>{share}</strong></div>)}</div></div>;
 }
-
+ 
 function SectionHeading({ eyebrow, title, action }: { eyebrow: string; title: string; action?: string }) {
   return <div className="section-heading"><div><span className="eyebrow">{eyebrow}</span><h2>{title}</h2></div>{action && <button className="text-button">{action}<ChevronRight size={15} /></button>}</div>;
 }
-
+ 
 function ActivityRows({ rows = whaleChanges }: { rows?: typeof whaleChanges }) {
   return <div className="activity-table"><div className="table-head"><span>Tracked account</span><span>Action</span><span>Security</span><span>Change</span><span>When</span><span /></div>{rows.map((item) => <div className="table-row" key={`${item.name}-${item.holding}`}><span className="account-cell"><span className="avatar">{item.name.split(" ").map((part) => part[0]).join("")}</span><span><strong>{item.name}</strong><small>{item.category}</small></span></span><span className={`action-label ${toneClass[item.signal]}`}>{item.action}</span><strong>{item.holding}</strong><Change value={item.change} tone={item.signal === "negative" ? "negative" : "positive"} /><span className="muted-cell">{item.date}</span><button className="row-arrow"><ChevronRight size={15} /></button></div>)}</div>;
 }
-
+ 
 function Overview({ navigate }: { navigate: (workspace: Workspace) => void }) {
   return <>
     <section className="welcome-row"><div><p className="eyebrow">Wednesday, 25 June 2026 · Market open</p><h1>Good morning, Parikshit<span className="lime-dot">.</span></h1><p className="subhead">Your capital has a clear signal today.</p></div><div className="welcome-actions"><button className="secondary-button"><Database size={15} /> Data health <span className="health-pip" /></button><button className="primary-button" onClick={() => navigate("Copilot")}><Sparkles size={15} /> Ask Copilot</button></div></section>
@@ -45,39 +46,56 @@ function Overview({ navigate }: { navigate: (workspace: Workspace) => void }) {
     <section className="panel activity-panel"><SectionHeading eyebrow="Live feed" title="Institutional activity" action="View all activity" /><ActivityRows rows={whaleChanges.slice(0, 4)} /></section>
   </>;
 }
-
+ 
 function Copilot({ query, setQuery }: { query: string; setQuery: (value: string) => void }) {
   const [submittedQuery, setSubmittedQuery] = useState("Should I add to HDFC AMC after the smart-money inflow?");
   const submitQuery = (event: FormEvent) => { event.preventDefault(); if (query.trim()) setSubmittedQuery(query.trim()); };
   return <div className="workspace-view"><div className="workspace-hero"><div><span className="eyebrow">Research copilot</span><h1>Turn market noise into a decision.</h1><p className="subhead">Ask Astra to synthesize filings, price action, institutional flows, and your own portfolio context.</p></div><div className="copilot-orb"><Sparkles size={23} /></div></div><div className="copilot-grid"><section className="panel copilot-chat"><div className="chat-head"><div className="assistant-identity"><span className="assistant-avatar"><Bot size={18} /></span><span><strong>Astra Copilot</strong><small>Research mode · citations on</small></span></div><span className="live-label"><i className="status-dot lime" /> Ready</span></div><div className="chat-messages"><div className="chat-message user-message">{submittedQuery}</div><div className="chat-message assistant-message"><p><strong>Short answer:</strong> wait for confirmation rather than chase the first move.</p><p>HDFC AMC scores well on quality and institutional demand, but its 30-day move has outrun its 200-day trend. The smart-money signal is constructive; the entry risk is valuation.</p><div className="answer-metrics"><span><small>Quality</small><strong>90 / 100</strong></span><span><small>Momentum</small><strong>95 / 100</strong></span><span><small>Valuation</small><strong>Fair − rich</strong></span></div><div className="citation-row"><span><Database size={13} /> 7 sources verified</span><span>AMFI · NSE filings · price history</span></div></div></div><form className="chat-input" onSubmit={submitQuery}><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Ask about a stock, fund, or your portfolio..." /><button aria-label="Submit research question"><Send size={17} /></button></form></section><aside className="copilot-side"><div className="panel"><SectionHeading eyebrow="Suggested prompts" title="Start with a lens" />{["Compare HDFC AMC vs Nippon Life AMC", "Find quality compounders under 35x PE", "Stress-test my portfolio for a 10% drawdown", "Explain today's NIFTY breadth"].map((prompt) => <button className="prompt-button" key={prompt} onClick={() => setQuery(prompt)}><span>{prompt}</span><ChevronRight size={14} /></button>)}</div><div className="panel mini-report"><span className="eyebrow">Research brief</span><h3>India market pulse</h3><p>Risk appetite improved as banks led breadth, while volatility cooled. Small-cap participation is positive but uneven.</p><div className="report-foot"><span>Generated 4 min ago</span><button className="text-button">Open brief <ChevronRight size={14} /></button></div></div></aside></div></div>;
 }
-
+ 
 function WhaleWatch() {
   return <div className="workspace-view"><div className="workspace-hero compact"><div><span className="eyebrow">Institutional intelligence</span><h1>Follow the conviction trail.</h1><p className="subhead">Track disclosed changes from notable investors and mutual funds through licensed sources.</p></div><button className="secondary-button"><Settings2 size={15} /> Manage tracked accounts</button></div><div className="watch-summary"><div><span className="eyebrow">Smart money index</span><strong>74.8</strong><Change value="+6.2%" tone="positive" /><small>Constructive · 20D</small></div><div><span className="eyebrow">New signals</span><strong>12</strong><small>5 high conviction</small></div><div><span className="eyebrow">Portfolio overlap</span><strong>38%</strong><Change value="+2.4%" tone="warning" /><small>vs. tracked universe</small></div><div><span className="eyebrow">Tracked capital</span><strong>₹2,840Cr</strong><small>Across 22 accounts</small></div></div><section className="panel full-panel"><SectionHeading eyebrow="Latest disclosed changes" title="Whale Watch" action="Export CSV" /><ActivityRows /></section></div>;
 }
-
+ 
 function Screener() {
   const [activeFilter, setActiveFilter] = useState("Quality + momentum");
   const filters = ["Quality + momentum", "Smart money adds", "Dividend compounders", "Custom formula"];
   return <div className="workspace-view"><div className="workspace-hero compact"><div><span className="eyebrow">AI stock screener</span><h1>Find signal before consensus.</h1><p className="subhead">A transparent composite across quality, valuation, momentum, and disclosed institutional flow.</p></div><button className="primary-button"><Sparkles size={15} /> Create screen</button></div><div className="filter-strip">{filters.map((filter) => <button key={filter} className={activeFilter === filter ? "active" : ""} onClick={() => setActiveFilter(filter)}>{filter}</button>)}<button className="filter-config"><Settings2 size={14} /> 12 filters</button></div><section className="panel full-panel"><div className="table-toolbar"><div><span className="eyebrow">Showing 5 of 248</span><h2>{activeFilter}</h2></div><div className="toolbar-actions"><button className="secondary-button"><Search size={15} /> Search universe</button><button className="icon-button"><MoreHorizontal size={17} /></button></div></div><div className="screen-table"><div className="table-head"><span>Company</span><span>Price</span><span>30D return</span><span>Composite</span><span>Quality</span><span>Momentum</span><span>Valuation</span></div>{screenerRows.map((row) => <div className="table-row" key={row.ticker}><span className="security-cell"><strong>{row.ticker}</strong><small>{row.company} · {row.sector}</small></span><strong>{row.price}</strong><Change value={row.return30d} tone={row.return30d.startsWith("−") ? "negative" : "positive"} /><span className="score-pill lime-pill">{row.composite}</span><span className="score-pill">{row.quality}</span><span className="score-pill blue-pill">{row.momentum}</span><span className="valuation-label">{row.valuation}</span></div>)}</div></section></div>;
 }
-
+ 
 function Portfolio() {
   const riskBars = [["Diversification", "84%", "lime"], ["Drawdown control", "68%", "blue"], ["Liquidity", "92%", "amber"], ["Tax efficiency", "61%", "red"]];
   const holdings = [["TCS", "Technology", "₹6.42L", "19.7%", "+22.4%"], ["HDFC AMC", "Financials", "₹4.81L", "14.7%", "+31.6%"], ["ICICI Bank", "Financials", "₹3.92L", "12.0%", "+18.2%"], ["Polycab", "Industrials", "₹2.84L", "8.7%", "+41.0%"]];
   return <div className="workspace-view"><div className="workspace-hero compact"><div><span className="eyebrow">Portfolio intelligence</span><h1>Make every holding earn its place.</h1><p className="subhead">Understand concentration, drawdown, tax lots, and your next best rebalance.</p></div><button className="secondary-button"><WalletCards size={15} /> Import holdings</button></div><div className="portfolio-grid"><section className="panel"><SectionHeading eyebrow="Risk cockpit" title="Portfolio health" /><div className="health-score"><div className="health-ring"><strong>76</strong><span>Healthy</span></div><div><p className="health-copy">Your portfolio has a healthy core, but the IT sleeve has drifted above its target. A small rebalance can reduce concentration without changing your return profile.</p><button className="text-button">See rebalance plan <ChevronRight size={14} /></button></div></div><div className="risk-bars">{riskBars.map(([label, value, color]) => <div className="risk-bar" key={label}><div><span>{label}</span><strong>{value}</strong></div><div className="bar-track"><i className={color} style={{ width: value }} /></div></div>)}</div></section><section className="panel"><SectionHeading eyebrow="Portfolio returns" title="Risk-adjusted view" /><div className="return-stack"><div><span>1Y return</span><strong>+24.6%</strong><Change value="+6.4% alpha" tone="positive" /></div><div><span>Sharpe ratio</span><strong>1.42</strong><small>vs. 0.98 benchmark</small></div><div><span>Max drawdown</span><strong>−8.7%</strong><small>Recovery: 31 days</small></div><div><span>Estimated XIRR</span><strong>18.9%</strong><small>Since first investment</small></div></div></section></div><section className="panel full-panel holdings-panel"><SectionHeading eyebrow="Largest positions" title="Where your capital sits" action="View all 18 holdings" /><div className="holding-list">{holdings.map(([ticker, sector, value, weight, change]) => <div className="holding-row" key={ticker}><span className="holding-badge">{ticker.slice(0, 2)}</span><span><strong>{ticker}</strong><small>{sector}</small></span><span><small>Value</small><strong>{value}</strong></span><span><small>Weight</small><strong>{weight}</strong></span><Change value={change} tone="positive" /><button className="row-arrow"><ChevronRight size={15} /></button></div>)}</div></section></div>;
 }
-
+ 
 function Alerts() {
   const [readIds, setReadIds] = useState<string[]>([]);
   return <div className="workspace-view"><div className="workspace-hero compact"><div><span className="eyebrow">Notification engine</span><h1>Only the signals worth your attention.</h1><p className="subhead">A calm, auditable stream for smart-money moves, portfolio risk, and fact checks.</p></div><button className="secondary-button"><Settings2 size={15} /> Alert preferences</button></div><div className="alert-toolbar"><span><i className="status-dot lime" /> 3 unread signals</span><button className="text-button" onClick={() => setReadIds(alerts.map((alert) => alert.id))}>Mark all as read</button></div><section className="panel full-panel alerts-panel">{alerts.map((alert) => { const isUnread = alert.unread && !readIds.includes(alert.id); return <div className={`alert-row ${isUnread ? "is-unread" : ""}`} key={alert.id}><div className={`alert-icon ${toneClass[alert.severity]}`}>{alert.type === "Smart money" ? <Users size={17} /> : alert.type === "Portfolio risk" ? <ShieldCheck size={17} /> : alert.type === "Fin-Debunk" ? <CircleHelp size={17} /> : <Bell size={17} />}</div><div className="alert-content"><div><span className="eyebrow">{alert.type}</span><strong>{alert.title}</strong></div><p>{alert.description}</p><small>{alert.time}</small></div>{isUnread && <span className="unread-dot" />}</div>; })}</section></div>;
 }
-
+ 
 export function WealthDashboard() {
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace>("Overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [pulse, setPulse] = useState<MarketPulse[]>(marketPulse);
+  const [dataMode, setDataMode] = useState<"mock" | "live">("mock");
+  const [switchingSource, setSwitchingSource] = useState(false);
   const navigate = (workspace: Workspace) => { setActiveWorkspace(workspace); setSidebarOpen(false); };
   const workspaceTitle = useMemo(() => activeWorkspace === "Overview" ? "Overview" : activeWorkspace, [activeWorkspace]);
-  return <div className="app-shell"><aside className={`sidebar ${sidebarOpen ? "is-open" : ""}`}><div className="brand"><span className="brand-mark"><span /></span><span><strong>astra</strong><small>WEALTH OS</small></span><button className="close-sidebar" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div><div className="workspace-label">WORKSPACES</div><nav>{workspaces.map(({ name, icon: Icon, badge }) => <button className={`nav-item ${activeWorkspace === name ? "active" : ""}`} key={name} onClick={() => navigate(name)}><Icon size={17} /><span>{name}</span>{badge && <small className={badge === "AI" ? "ai-badge" : "count-badge"}>{badge}</small>}</button>)}</nav><div className="sidebar-divider" /><div className="workspace-label">SYSTEM</div><nav><button className="nav-item"><Compass size={17} /><span>Discover</span></button><button className="nav-item"><PanelsTopLeft size={17} /><span>Reports</span></button><button className="nav-item"><Settings2 size={17} /><span>Settings</span></button></nav><div className="sidebar-bottom"><div className="data-status"><span className="status-pulse" /><span><strong>All systems operational</strong><small>Last sync · 08:42 IST</small></span></div><div className="profile-chip"><span className="profile-avatar">PG</span><span><strong>Parikshit</strong><small>Personal workspace</small></span><MoreHorizontal size={16} /></div></div></aside><main className="main-content"><header className="topbar"><div className="mobile-brand"><button className="menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><span className="brand-mark"><span /></span><strong>astra</strong></div><div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{workspaceTitle}</strong></div><div className="topbar-actions"><button className="search-trigger"><Search size={16} /><span>Search anything</span><kbd><Command size={11} /> K</kbd></button><button className="topbar-icon"><Bell size={17} /><i /></button><span className="topbar-divider" /><button className="profile-avatar top-profile">PG</button></div></header><div className="market-strip">{marketPulse.map((item) => <div className="market-item" key={item.name}><span>{item.name}</span><strong>{item.value}</strong><Change value={item.change} tone={item.tone} /></div>)}<div className="market-status"><span className="status-pulse" /> NSE live · 09:42:18</div></div><div className="page-content">{activeWorkspace === "Overview" && <Overview navigate={navigate} />}{activeWorkspace === "Copilot" && <Copilot query={query} setQuery={setQuery} />}{activeWorkspace === "Whale Watch" && <WhaleWatch />}{activeWorkspace === "Screener" && <Screener />}{activeWorkspace === "Portfolio" && <Portfolio />}{activeWorkspace === "Alerts" && <Alerts />}</div><footer className="app-footer"><span><ShieldCheck size={13} /> Intelligence for education, not a recommendation to buy or sell.</span><span>Data mode: <strong>Mock sandbox</strong> · <button>Switch data source</button></span></footer></main></div>;
+  const handleSwitchDataSource = async () => {
+    setSwitchingSource(true);
+    try {
+      const result = await apiRequest<{ source_mode: string; pulse: MarketPulse[] }>("/v1/market/overview");
+      setPulse(result.pulse);
+      setDataMode(result.source_mode === "live" ? "live" : "mock");
+    } catch (error) {
+      console.error("Astra: could not reach the market API, staying on local mock fixtures", error);
+      setPulse(marketPulse);
+      setDataMode("mock");
+    } finally {
+      setSwitchingSource(false);
+    }
+  };
+  return <div className="app-shell"><aside className={`sidebar ${sidebarOpen ? "is-open" : ""}`}><div className="brand"><span className="brand-mark"><span /></span><span><strong>astra</strong><small>WEALTH OS</small></span><button className="close-sidebar" onClick={() => setSidebarOpen(false)}><X size={18} /></button></div><div className="workspace-label">WORKSPACES</div><nav>{workspaces.map(({ name, icon: Icon, badge }) => <button className={`nav-item ${activeWorkspace === name ? "active" : ""}`} key={name} onClick={() => navigate(name)}><Icon size={17} /><span>{name}</span>{badge && <small className={badge === "AI" ? "ai-badge" : "count-badge"}>{badge}</small>}</button>)}</nav><div className="sidebar-divider" /><div className="workspace-label">SYSTEM</div><nav><button className="nav-item"><Compass size={17} /><span>Discover</span></button><button className="nav-item"><PanelsTopLeft size={17} /><span>Reports</span></button><button className="nav-item"><Settings2 size={17} /><span>Settings</span></button></nav><div className="sidebar-bottom"><div className="data-status"><span className="status-pulse" /><span><strong>All systems operational</strong><small>Last sync · 08:42 IST</small></span></div><div className="profile-chip"><span className="profile-avatar">PG</span><span><strong>Parikshit</strong><small>Personal workspace</small></span><MoreHorizontal size={16} /></div></div></aside><main className="main-content"><header className="topbar"><div className="mobile-brand"><button className="menu-button" onClick={() => setSidebarOpen(true)}><Menu size={20} /></button><span className="brand-mark"><span /></span><strong>astra</strong></div><div className="breadcrumbs"><span>Workspace</span><ChevronRight size={14} /><strong>{workspaceTitle}</strong></div><div className="topbar-actions"><button className="search-trigger"><Search size={16} /><span>Search anything</span><kbd><Command size={11} /> K</kbd></button><button className="topbar-icon"><Bell size={17} /><i /></button><span className="topbar-divider" /><button className="profile-avatar top-profile">PG</button></div></header><div className="market-strip">{pulse.map((item) => <div className="market-item" key={item.name}><span>{item.name}</span><strong>{item.value}</strong><Change value={item.change} tone={item.tone} /></div>)}<div className="market-status"><span className="status-pulse" /> NSE live · 09:42:18</div></div><div className="page-content">{activeWorkspace === "Overview" && <Overview navigate={navigate} />}{activeWorkspace === "Copilot" && <Copilot query={query} setQuery={setQuery} />}{activeWorkspace === "Whale Watch" && <WhaleWatch />}{activeWorkspace === "Screener" && <Screener />}{activeWorkspace === "Portfolio" && <Portfolio />}{activeWorkspace === "Alerts" && <Alerts />}</div><footer className="app-footer"><span><ShieldCheck size={13} /> Intelligence for education, not a recommendation to buy or sell.</span><span>Data mode: <strong>{dataMode === "live" ? "Live" : "Mock sandbox"}</strong> · <button className="text-button" onClick={handleSwitchDataSource} disabled={switchingSource}>{switchingSource ? "Checking…" : "Switch data source"}</button></span></footer></main></div>;
 }
