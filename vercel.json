@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 30,
+      "includeFiles": ["backend/**/*.py"],
+      "excludeFiles": "{backend/tests/**,backend/.pytest_cache/**,node_modules/**,**/*.pyc}"
+    }
+  }
+}
