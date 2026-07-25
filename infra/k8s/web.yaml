@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astra-web
+  namespace: astra-wealth
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: astra-web }
+  template:
+    metadata:
+      labels: { app: astra-web }
+    spec:
+      containers:
+        - name: web
+          image: ghcr.io/your-org/astra-wealth-web:latest
+          ports: [{ containerPort: 3000 }]
+          env:
+            - { name: NEXT_PUBLIC_API_URL, value: /api }
+          readinessProbe:
+            httpGet: { path: /api/health, port: 3000 }
+            initialDelaySeconds: 5
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: astra-web
+  namespace: astra-wealth
+spec:
+  selector: { app: astra-web }
+  ports: [{ port: 3000, targetPort: 3000 }]

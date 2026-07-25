@@ -1,0 +1,7 @@
+{
+  "mode": "mock",
+  "as_of": "2026-06-25T09:42:18+05:30",
+  "disclaimer": "Synthetic fixtures for local development. Not live market data.",
+  "tracked_accounts": ["Mukul Agrawal", "Dolly Khanna", "Ashish Kacholia", "Parag Parikh Flexi Cap", "SBI Mutual Fund"],
+  "allowed_source_adapters": ["NSE filings", "BSE filings", "AMFI disclosures", "SEBI public notices"]
+}

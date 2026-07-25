@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: astra-api
+  namespace: astra-wealth
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: astra-api }
+  template:
+    metadata:
+      labels: { app: astra-api }
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/your-org/astra-wealth-api:latest
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: DATA_MODE, value: mock }
+            - { name: AI_PROVIDER, value: mock }
+            - { name: BROKER_MODE, value: disabled }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 8000 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /health/live, port: 8000 }
+            initialDelaySeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: astra-api
+  namespace: astra-wealth
+spec:
+  selector: { app: astra-api }
+  ports: [{ port: 8000, targetPort: 8000 }]
