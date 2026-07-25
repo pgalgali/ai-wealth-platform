@@ -7,5 +7,11 @@
       "includeFiles": "backend/**/*.py",
       "excludeFiles": "{backend/tests/**,backend/.pytest_cache/**,node_modules/**,**/*.pyc}"
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/v1/market/refresh",
+      "schedule": "0 */1 * * *"
+    }
+  ]
 }
